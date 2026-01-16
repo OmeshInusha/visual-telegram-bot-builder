@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+.eggs/
+*.egg-info/
+*.egg
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Project-specific (User Data - Don't commit)
+projects/
+bots/
+custom_blocks/
+*.db
+
+# Temporary files
+temp_store_update/
+*.log
+*.tmp
+
+# Electron / Node
+node_modules/
+dist-electron/
+*.exe
+*.msi
+
+# Environment
+.env
+.env.local
+
+# PyInstaller
+*.spec
