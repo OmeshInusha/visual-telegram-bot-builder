@@ -2,7 +2,7 @@
 
 A **visual, no-code/low-code tool** for building Telegram bots using drag-and-drop blocks. Built with Python (Flask) and Blockly.
 
-![Telegram Bot Builder Screenshot](docs/screenshot.png)
+
 
 ---
 
@@ -122,3 +122,4 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 ---
 
 Made with ❤️ for the Telegram bot community
+
