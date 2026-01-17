@@ -1,1 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
 
+<head>
+        <!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-EZW73PXVHK"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-EZW73PXVHK');
+</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram Bot Builder</title>
+    <!-- Tailwind CSS -->
+    <script src="{{ url_for('static', filename='js/tailwind.js') }}"></script>
+
+    <!-- Blockly Core & Standard Blocks (Locked to v10.4.3 for stability) -->
+    <script src="https://unpkg.com/blockly@10.4.3/blockly.min.js"></script>
+    <script src="https://unpkg.com/blockly@10.4.3/blocks_compressed.js"></script>
+    <script src="https://unpkg.com/blockly@10.4.3/python_compressed.js"></script>
+    <script src="https://unpkg.com/blockly@10.4.3/msg/js/en.js"></script>
+
+    <!-- Monaco Editor -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
+
+    <style>
+        /* Force full height for body */
+        body,
+        html {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        /* Blockly Container - Docked Left (2/3 width) */
+        #blocklyDiv {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 66%;
+            /* Leave 33% for code */
+            height: 100%;
+            z-index: 0;
+            background-color: #f9fafb;
+        }
+
+        /* Customize Toolbox Background */
+        .blocklyToolboxDiv {
+            background-color: #1f2937 !important;
+            /* Dark Gray */
+            color: white;
+            border-right: 1px solid #374151;
+        }
+
+        .blocklyTreeLabel {
+            color: #d1d5db !important;
+            /* Light Gray text */
+            font-weight: 500;
+        }
+
+        .blocklyTreeRow:hover {
+            background-color: #374151 !important;
+        }
+
+        /* Fix Flyout Scrollbar Persisting */
+        .blocklyFlyoutScrollbar {
+            display: none !important;
+            /* Hide ugly SVG scrollbar, let mousewheel handle it */
+        }
+
+        /* Hide Toolbox Scrollbar (Category Menu) */
+        .blocklyToolboxDiv::-webkit-scrollbar {
+            display: none;
+        }
+
+        .blocklyToolboxDiv {
+            -ms-overflow-style: none;
+            /* IE and Edge */
+            scrollbar-width: none;
+            /* Firefox */
+        }
+
+        /* Code Panel - Docked Right (1/3 width) */
+        #codePanel {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 34%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            border-left: 1px solid #374151;
+            box-shadow: none;
+            /* Remove floating shadow */
+            border-radius: 0;
+            /* Remove rounded corners */
+            z-index: 10;
+            /* No overflow hidden here, let children handle it */
+        }
+
+        /* The header is fixed height, the editor takes the rest */
+        .editor-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden !important;
+            /* Clip anything spilling out */
+            width: 100%;
+        }
+
+        /* Monaco Container */
+        #monaco-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Fix for Blockly Input Fields inheriting white text */
+        .blocklyHtmlInput {
+            color: #000 !important;
+            font-family: monospace !important;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-900 text-white h-screen flex flex-col overflow-hidden">
+
+    <!-- Header -->
+    <header class="bg-gray-800 border-b border-gray-700 h-14 flex items-center justify-between px-4 z-10 shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center font-bold text-lg">🤖</div>
+            <h1 class="font-bold text-xl tracking-tight">Bot Builder <span
+                    class="text-xs font-normal text-gray-400 ml-2">v2.0</span></h1>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <span id="current-bot-display"
+                class="text-xs text-gray-400 bg-gray-900 px-2 py-1 rounded border border-gray-700 whitespace-nowrap hidden xl:inline-block">Active:
+                None</span>
+            <button onclick="changeBot()"
+                class="bg-gray-700 hover:bg-gray-600 px-2 py-1.5 rounded text-xs text-gray-200 transition-colors whitespace-nowrap">Switch</button>
+            <button onclick="toggleProjectsPanel()"
+                class="bg-gray-700 hover:bg-gray-600 px-2 py-1.5 rounded text-xs text-gray-200 transition-colors flex items-center gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
+                </svg>
+                <span class="hidden lg:inline">Projects</span>
+            </button>
+            <a href="/explorer" target="_blank"
+                class="bg-gray-700 hover:bg-gray-600 px-2 py-1.5 rounded text-xs text-gray-200 transition-colors flex items-center gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                </svg>
+                <span class="hidden lg:inline">Explorer</span>
+            </a>
+            <a href="/builder" target="_blank"
+                class="bg-blue-700 hover:bg-blue-600 px-2 py-1.5 rounded text-xs text-white transition-colors flex items-center gap-1 whitespace-nowrap">
+                🧩 Builder
+            </a>
+            <a href="/store" target="_blank"
+                class="bg-purple-700 hover:bg-purple-600 px-2 py-1.5 rounded text-xs text-white transition-colors flex items-center gap-1 whitespace-nowrap">
+                🛍️ Store
+            </a>
+            <!-- Libraries Button -->
+            <button onclick="openLibraryManager()"
+                class="text-gray-400 hover:text-white transition-colors mr-2 flex items-center gap-1"
+                title="Manage Python Libraries">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+            </button>
+            <div class="h-6 w-px bg-gray-700 mx-2"></div>
+            <!-- Version & Projects -->
+            <button onclick="toggleVersionsPanel()" class="text-gray-400 hover:text-white transition-colors mr-2"
+                title="Version History">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </button>
+            <button onclick="exportProject()" class="text-gray-400 hover:text-white transition-colors mr-2"
+                title="Export Project (.bot)">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+            </button>
+            <button onclick="exportBotZip()" class="text-yellow-500 hover:text-yellow-400 transition-colors mr-2"
+                title="Export Bot Package (.zip) - Includes EXE, Code, & DB">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                </svg>
+            </button>
+            <label class="text-gray-400 hover:text-white transition-colors cursor-pointer mr-2"
+                title="Import Project (.bot)">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0l-4 4m4-4v12" />
+                </svg>
+                <input type="file" id="fileInput" class="hidden" accept=".bot,.xml,.json"
+                    onchange="importProject(this)">
+            </label>
+            <div class="h-6 w-px bg-gray-700 mx-2"></div>
+            <!-- Tutorial -->
+            <button onclick="startTutorial()"
+                class="text-yellow-400 hover:text-yellow-300 transition-colors mr-2 animate-pulse"
+                title="Start Tutorial">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+            </button>
+            <div class="h-6 w-px bg-gray-700 mx-2"></div>
+            <!-- Save Button (Manual) -->
+            <button onclick="saveProject(true)" class="text-gray-400 hover:text-white transition-colors"
+                title="Save Snapshot">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                </svg>
+            </button>
+            <button onclick="runBot()"
+                class="bg-green-600 hover:bg-green-500 text-white px-4 py-1.5 rounded flex items-center gap-2 font-medium shadow-lg shadow-green-900/20 transition-all hover:translate-y-0.5">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+                        clip-rule="evenodd" />
+                </svg>
+                Run Bot
+            </button>
+            <button onclick="stopBot()"
+                class="bg-red-600 hover:bg-red-500 text-white px-4 py-1.5 rounded flex items-center gap-2 font-medium shadow-lg shadow-red-900/20 transition-all hover:translate-y-0.5">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z"
+                        clip-rule="evenodd" />
+                </svg>
+                Stop
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 relative overflow-hidden">
+        <!-- Blockly Workspace (Full Screen) -->
+        <div class="absolute inset-0 w-full h-full z-0">
+            <div id="blocklyDiv"></div>
+        </div>
+
+        <!-- Draggable & Editable Code Panel -->
+        <div id="codePanel"
+            class="absolute right-4 top-4 w-1/3 min-w-[300px] h-[80%] bg-gray-900 border border-gray-700 rounded-lg shadow-2xl flex flex-col z-20 overflow-hidden">
+
+            <!-- Draggable Header -->
+            <div
+                class="draggable-header bg-gray-800 px-4 py-3 border-b border-gray-700 flex justify-between items-center cursor-move select-none">
+                <div class="flex items-center gap-3">
+                    <span class="text-gray-300 font-mono text-sm flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-500" viewBox="0 0 20 20"
+                            fill="currentColor">
+                            <path fill-rule="evenodd"
+                                d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"
+                                clip-rule="evenodd" />
+                        </svg>
+                        <span id="filename-display">bot.py</span>
+                    </span>
+                    <!-- Controls -->
+                    <div class="flex items-center gap-2 ml-2 border-l border-gray-600 pl-3">
+                        <button onclick="generateCode(true)"
+                            class="bg-blue-600 hover:bg-blue-500 text-white px-2 py-1 rounded text-xs font-bold uppercase shadow-sm transition-all active:scale-95"
+                            title="Compile Blocks to Code (Manual)">
+                            Compile
+                        </button>
+
+                        <label
+                            class="flex items-center gap-1.5 cursor-pointer bg-gray-900 px-2 py-1 rounded border border-gray-700 hover:border-gray-500 transition"
+                            title="Toggle Auto-Sync">
+                            <input type="checkbox" id="autoSyncToggle"
+                                class="rounded bg-gray-700 border-gray-600 text-blue-500 focus:ring-0 w-3 h-3" checked
+                                onchange="toggleAutoSync()">
+                            <span class="text-[10px] font-bold text-gray-300 uppercase select-none">Auto</span>
+                        </label>
+                    </div>
+
+                    <!-- Status Indicator (Hidden by default) -->
+                    <span id="sync-status"
+                        class="hidden text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-yellow-900 text-yellow-400 border border-yellow-700 ml-2"
+                        title="Manual Edits Detected">
+                        Manual Mode
+                    </span>
+                    <button id="resume-sync-btn" onclick="resumeSync()"
+                        class="hidden text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-blue-600 text-white hover:bg-blue-500 transition-colors ml-1"
+                        title="Resume Auto-Generation (Overwrite Changes)">
+                        Resume
+                    </button>
+                </div>
+
+                <button class="text-gray-400 hover:text-white" title="Copy Code" onclick="copyCode()">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
+                        <path
+                            d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Monaco Editor Container -->
+            <div class="editor-container">
+                <div id="monaco-container"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Version History Panel -->
+    <div id="versionsPanel"
+        class="fixed right-0 top-14 bottom-0 w-80 bg-gray-800 border-l border-gray-700 shadow-2xl z-30 transform translate-x-full transition-transform duration-300 flex flex-col">
+        <div class="p-4 border-b border-gray-700 flex justify-between items-center bg-gray-800">
+            <h3 class="font-bold text-lg text-white">Version History</h3>
+            <button onclick="toggleVersionsPanel()" class="text-gray-400 hover:text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        <div class="flex-1 overflow-y-auto p-4 space-y-3" id="versionsList">
+            <!-- Versions will be populated here -->
+            <p class="text-gray-500 text-sm text-center italic mt-10">No saved versions yet.</p>
+        </div>
+        <div class="p-4 border-t border-gray-700 bg-gray-900">
+            <button onclick="saveProject(true)"
+                class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded font-medium flex justify-center items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Create New Version
+            </button>
+        </div>
+    </div>
+
+    <!-- Projects List Panel -->
+    <div id="projectsPanel"
+        class="fixed left-0 top-14 bottom-0 w-80 bg-gray-800 border-r border-gray-700 shadow-2xl z-40 transform -translate-x-full transition-transform duration-300 flex flex-col">
+        <div class="p-4 border-b border-gray-700 flex justify-between items-center bg-gray-800">
+            <h3 class="font-bold text-lg text-white">Your Projects</h3>
+            <button onclick="toggleProjectsPanel()" class="text-gray-400 hover:text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        <div class="flex-1 overflow-y-auto p-4 space-y-3" id="projectsList">
+            <!-- Projects will be populated here -->
+            <p class="text-gray-500 text-sm text-center italic mt-10">Loading projects...</p>
+        </div>
+        <div class="p-4 border-t border-gray-700 bg-gray-900">
+            <button onclick="changeBot(); toggleProjectsPanel();"
+                class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded font-medium flex justify-center items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Create New Project
+            </button>
+        </div>
+    </div>
+
+    <!-- Library Manager Modal -->
+    <div id="libModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-gray-800 border border-gray-700 rounded-lg shadow-xl p-6 w-[500px] flex flex-col max-h-[80vh]">
+            <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
+                <h2 class="text-xl font-bold text-white flex items-center gap-2">📦 Manage Python Libraries</h2>
+                <button onclick="closeLibraryManager()" class="text-gray-400 hover:text-white">✕</button>
+            </div>
+
+            <div class="mb-4 flex gap-2">
+                <input type="text" id="libInput"
+                    class="flex-1 bg-gray-900 border border-gray-600 rounded px-3 py-2 text-sm text-white focus:border-blue-500 outline-none"
+                    placeholder="Package name (e.g. pandas)">
+                <button onclick="installLibrary()"
+                    class="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded text-xs font-bold transition">Install</button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto custom-scrollbar bg-gray-900 border border-gray-700 rounded p-2"
+                id="libList">
+                <p class="text-gray-500 text-xs text-center mt-4">Loading installed packages...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bot Entry Modal -->
+    <div id="botModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-xl p-8 w-96 transform transition-all">
+            <div class="text-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">Welcome to Bot Builder</h2>
+                <p class="text-gray-500 mt-2">Create a new bot or load an existing one.</p>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Bot Name</label>
+                    <input type="text" id="botNameInput"
+                        class="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 outline-none text-gray-900"
+                        placeholder="e.g., MyAwesomeBot">
+                    <p class="text-xs text-red-500 mt-1 hidden" id="nameError">Please enter a bot name.</p>
+                </div>
+                <div class="flex flex-col gap-3 mt-6">
+                    <button onclick="confirmBotName()"
+                        class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition">Start
+                        Designing</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tutorial Overlay Widget -->
+    <div id="tutorialWidget"
+        class="hidden fixed bottom-8 right-8 w-80 bg-blue-900 border border-blue-500 shadow-2xl rounded-xl p-5 z-50 transition-all transform translate-y-0">
+        <div class="flex justify-between items-start mb-3">
+            <h3 class="font-bold text-lg text-white" id="tutorialTitle">Tutorial Step 1</h3>
+            <button onclick="closeTutorial()" class="text-blue-300 hover:text-white">✕</button>
+        </div>
+        <p class="text-sm text-blue-100 mb-4 h-16" id="tutorialText">
+            Welcome to the Bot Builder! Let's create your first bot in 1 minute.
+        </p>
+        <div class="flex justify-between items-center">
+            <span class="text-xs text-blue-400" id="tutorialProgress">1/5</span>
+            <button onclick="nextTutorialStep()"
+                class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-1.5 rounded text-sm font-medium">
+                Next ➡
+            </button>
+        </div>
+    </div>
+
+    <!-- Application Scripts -->
+    <script src="{{ url_for('static', filename='js/custom_blocks.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/auto_generated_blocks.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/auto_generated_python.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/python_generator.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/toolbox_def.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+</body>
+
+</html>

@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+        <!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-EZW73PXVHK"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-EZW73PXVHK');
+</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Block Explorer</title>
+    <script src="{{ url_for('static', filename='js/tailwind.js') }}"></script>
+</head>
+
+<body class="bg-gray-900 text-white min-h-screen">
+
+    <!-- Header -->
+    <header class="bg-gray-800 border-b border-gray-700 h-16 flex items-center justify-between px-6 sticky top-0 z-10">
+        <div class="flex items-center gap-4">
+            <h1 class="text-2xl font-bold text-blue-400">🧩 Block Explorer</h1>
+        </div>
+        <div>
+            <label
+                class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded cursor-pointer font-bold transition flex items-center gap-2">
+                <span>Upload Block (.json)</span>
+                <input type="file" class="hidden" accept=".json" onchange="uploadBlock(this)">
+            </label>
+        </div>
+    </header>
+
+    <!-- Content -->
+    <div class="p-8 max-w-7xl mx-auto">
+        <h2 class="text-xl font-bold text-gray-300 mb-6">Installed Custom Blocks</h2>
+
+        <div id="blocksGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Blocks rendered here -->
+            <div class="col-span-full text-center text-gray-500 py-20">Loading...</div>
+        </div>
+    </div>
+
+    <!-- Template -->
+    <template id="blockCardTemplate">
+        <div
+            class="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden hover:border-blue-500 transition shadow-lg flex flex-col">
+            <div class="h-2 w-full bg-blue-500 block-color-strip"></div>
+            <div class="p-6 flex-1">
+                <div class="flex justify-between items-start mb-2">
+                    <span class="text-xs uppercase font-bold text-blue-400 block-category">Category</span>
+                    <span class="text-xs text-gray-500 font-mono block-id">ID</span>
+                </div>
+                <h3 class="text-lg font-bold text-white mb-2 block-title">Block Title</h3>
+                <p class="text-sm text-gray-400 block-tooltip line-clamp-2">Description goes here...</p>
+            </div>
+            <div class="bg-gray-700/50 px-6 py-4 flex justify-between items-center border-t border-gray-700">
+                <div class="flex gap-3">
+                    <button class="text-gray-400 hover:text-white text-sm btn-download"
+                        title="Download JSON">Download</button>
+                </div>
+                <div class="flex gap-2">
+                    <a href="#"
+                        class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded text-xs font-bold btn-edit flex items-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                            <path
+                                d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                        </svg>
+                        Edit
+                    </a>
+                    <button
+                        class="bg-red-900/50 hover:bg-red-900 text-red-400 border border-red-800 hover:text-white px-3 py-1.5 rounded text-xs font-bold btn-delete transition">Delete</button>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- Scripts Deps -->
+    <script src="https://unpkg.com/blockly@10.4.3/blockly.min.js"></script>
+    <script src="https://unpkg.com/blockly@10.4.3/python_compressed.js"></script>
+    <script src="/static/js/custom_blocks.js"></script>
+    <script src="/static/js/auto_generated_blocks.js"></script>
+    <script src="/static/js/auto_generated_python.js"></script>
+    <script src="/static/js/toolbox_def.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', loadBlocks);
+
+        async function loadBlocks() {
+            try {
+                // 1. Fetch Custom Blocks (Overrides & New)
+                const res = await fetch('/custom-blocks');
+                const data = await res.json();
+                const customBlocksMap = new Map();
+                data.blocks.forEach(b => customBlocksMap.set(b.type, b));
+
+                // 2. Discover System Blocks from Toolbox
+                // We create a temp workspace to instantiate blocks for metadata extraction
+                const workspace = new Blockly.Workspace();
+
+                let allBlocks = [];
+                let processedTypes = new Set();
+
+                // Helper to process a category
+                function processCategory(contents) {
+                    contents.forEach(item => {
+                        if (item.kind === 'block') {
+                            const type = item.type;
+                            if (processedTypes.has(type)) return;
+                            processedTypes.add(type);
+
+                            let blockData = {
+                                type: type,
+                                tooltip: "System Block",
+                                colour: 230,
+                                category: "System",
+                                isSystem: true,
+                                isOverride: false
+                            };
+
+                            // Try to get metadata from standard definition
+                            try {
+                                const b = workspace.newBlock(type);
+                                blockData.tooltip = b.getTooltip() || "Standard Library Block";
+                                blockData.colour = b.getHue ? b.getHue() : (b.colour_ || 230);
+                                b.dispose();
+                            } catch (e) { }
+
+                            // Check if Overridden
+                            if (customBlocksMap.has(type)) {
+                                const custom = customBlocksMap.get(type);
+                                blockData = { ...custom, ...blockData }; // Keep system meta? No, prefer custom.
+                                blockData = custom; // Use the custom definition entirely
+                                blockData.isSystem = true;
+                                blockData.isOverride = true;
+                                customBlocksMap.delete(type); // Mark as handled
+                            }
+
+                            allBlocks.push(blockData);
+
+                        } else if (item.kind === 'category') {
+                            if (item.contents && Array.isArray(item.contents)) {
+                                item.contents.forEach(sub => {
+                                    if (sub.kind === 'block') {
+                                        const type = sub.type;
+                                        if (processedTypes.has(type)) return;
+                                        processedTypes.add(type);
+
+                                        let blockData = {
+                                            type: type,
+                                            tooltip: "System Block",
+                                            colour: 230, // Default
+                                            category: item.name,
+                                            isSystem: true,
+                                            isOverride: false
+                                        };
+
+                                        try {
+                                            const b = workspace.newBlock(type);
+                                            blockData.tooltip = b.getTooltip() || "Standard Library Block";
+                                            blockData.colour = b.getHue ? b.getHue() : (b.colour_ || 230);
+                                            b.dispose();
+                                        } catch (e) { }
+
+                                        // Check Override
+                                        if (customBlocksMap.has(type)) {
+                                            const custom = customBlocksMap.get(type);
+                                            blockData = custom;
+                                            blockData.category = item.name; // Keep Toolbox Category
+                                            blockData.isSystem = true;
+                                            blockData.isOverride = true;
+                                            customBlocksMap.delete(type);
+                                        }
+
+                                        allBlocks.push(blockData);
+                                    }
+                                });
+                            }
+                        }
+                    });
+                }
+
+                if (window.TOOLBOX_CONFIG) {
+                    processCategory(window.TOOLBOX_CONFIG.contents);
+                }
+
+                // Add remaining custom blocks (Pure Custom)
+                customBlocksMap.forEach(b => {
+                    b.isSystem = false;
+                    b.isOverride = false;
+                    allBlocks.push(b);
+                });
+
+                renderGrid(allBlocks);
+
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function renderGrid(blocks) {
+            const grid = document.getElementById('blocksGrid');
+            grid.innerHTML = '';
+
+            if (blocks.length === 0) {
+                grid.innerHTML = '<div class="col-span-full text-center text-gray-500 py-10">No blocks found.</div>';
+                return;
+            }
+
+            const template = document.getElementById('blockCardTemplate');
+
+            blocks.forEach(block => {
+                const clone = template.content.cloneNode(true);
+
+                // Color Strip
+                const hue = block.colour || 230;
+                clone.querySelector('.block-color-strip').style.background = `hsl(${hue}, 70%, 50%)`;
+
+                // Info
+                clone.querySelector('.block-title').textContent = (block.message0 || block.type).split("%")[0];
+                clone.querySelector('.block-category').textContent = block.category || "Uncategorized";
+                clone.querySelector('.block-id').textContent = block.type;
+                clone.querySelector('.block-tooltip').textContent = block.tooltip || "";
+
+                // Actions
+                const btnEdit = clone.querySelector('.btn-edit');
+                const btnDelete = clone.querySelector('.btn-delete');
+                const btnDownload = clone.querySelector('.btn-download');
+
+                // Universal Edit Link
+                btnEdit.href = `/builder?edit=${block.type}`;
+
+                // Logic for Buttons based on State
+                if (block.isSystem) {
+                    if (block.isOverride) {
+                        // System Block WITH Custom Override
+                        btnDownload.style.display = 'block'; // Can download the override
+
+                        btnEdit.innerHTML = `<svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg> Edit Override`;
+
+                        btnDelete.textContent = "Reset to Default";
+                        btnDelete.classList.remove('text-red-400', 'border-red-800', 'hover:bg-red-900');
+                        btnDelete.classList.add('text-yellow-400', 'border-yellow-600', 'hover:bg-yellow-900', 'bg-yellow-900/40');
+                        btnDelete.title = "Delete custom override and revert to system default";
+                        btnDelete.onclick = () => deleteBlock(block.type, true);
+
+                    } else {
+                        // System Defaults
+                        btnDownload.style.display = 'none'; // Cannot download internal JS def yet
+
+                        btnEdit.innerHTML = `<svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg> Override`;
+                        btnEdit.classList.remove('bg-blue-600', 'hover:bg-blue-500');
+                        btnEdit.classList.add('bg-gray-600', 'hover:bg-gray-500');
+                        btnEdit.title = "Create a custom version of this system block";
+
+                        btnDelete.style.display = 'none'; // Cannot delete/reset default
+                    }
+                } else {
+                    // Pure Custom Block
+                    btnDelete.onclick = () => deleteBlock(block.type, false);
+                    btnDownload.onclick = () => downloadBlock(block);
+                }
+
+                grid.appendChild(clone);
+            });
+        }
+
+        function downloadBlock(blockData) {
+            const blob = new Blob([JSON.stringify(blockData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = blockData.type + ".json";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        async function deleteBlock(type, isReset) {
+            const msg = isReset
+                ? "Are you sure you want to RESET this block? Your custom override will be lost, and the system default will be restored."
+                : "Are you sure you want to delete this block?";
+
+            if (!confirm(msg)) return;
+
+            try {
+                const res = await fetch('/delete-block', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: type, isReset: isReset })
+                });
+                const d = await res.json();
+                if (d.status === 'success') loadBlocks();
+                else alert(d.message);
+            } catch (e) { alert(e); }
+        }
+
+        async function uploadBlock(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const res = await fetch('/upload-block', {
+                    method: 'POST',
+                    body: formData
+                });
+                const d = await res.json();
+                alert(d.message);
+                if (d.status === 'success') loadBlocks();
+            } catch (e) { alert("Upload failed: " + e.message); }
+
+            input.value = ''; // Reset
+        }
+    </script>
+</body>
+
+</html>

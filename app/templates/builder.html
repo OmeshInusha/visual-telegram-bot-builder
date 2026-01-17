@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+        <!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-EZW73PXVHK"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-EZW73PXVHK');
+</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Block Designer</title>
+    <script src="{{ url_for('static', filename='js/tailwind.js') }}"></script>
+    <script src="https://unpkg.com/blockly@10.4.3/blockly.min.js"></script>
+    <script src="https://unpkg.com/blockly@10.4.3/python_compressed.js"></script>
+    <!-- Custom Scripts -->
+    <script src="{{ url_for('static', filename='js/system_defaults.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/custom_blocks.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/auto_generated_blocks.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/auto_generated_python.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/python_generator.js') }}"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/python/python.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/dracula.min.css">
+</head>
+
+<body class="bg-gray-900 text-white h-screen flex overflow-hidden">
+
+    <!-- Left Sidebar: Configuration -->
+    <div class="w-[400px] flex-shrink-0 bg-gray-800 border-r border-gray-700 flex flex-col h-full z-20 shadow-xl">
+        <div class="p-6 border-b border-gray-700 shrink-0">
+            <h1 class="text-2xl font-bold text-blue-400 mb-2">Block Factory</h1>
+            <p class="text-xs text-gray-400">Design custom blocks with full control.</p>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
+            <!-- Basic Info -->
+            <div class="space-y-4">
+                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-700 pb-2">1.
+                    Basic Info</h3>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Block Type ID (Unique)</label>
+                    <input type="text" id="blockType"
+                        class="w-full bg-gray-700 rounded px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-blue-500 font-mono"
+                        placeholder="my_custom_block">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Tooltip Description</label>
+                    <textarea id="blockTooltip" rows="2"
+                        class="w-full bg-gray-700 rounded px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-blue-500"
+                        placeholder="What does this block do?"></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Category</label>
+                    <select id="blockCategory"
+                        class="w-full bg-gray-700 rounded px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-blue-500">
+                        <option value="My Custom Blocks">My Custom Blocks (Default)</option>
+                        <option value="Utilities">Utilities</option>
+                        <option value="Math & Random">Math & Random</option>
+                        <option value="Text & Dates">Text & Dates</option>
+                        <option value="Lists & Files">Lists & Files</option>
+                        <option value="Network">Network</option>
+                        <option value="Buttons & Inline">Buttons & Inline</option>
+                        <option value="Telegram Data">Telegram Data</option>
+                        <option value="Logic & Loops">Logic & Loops</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Appearance -->
+            <div class="space-y-4">
+                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-700 pb-2">2.
+                    Appearance</h3>
+                <div>
+                    <div class="flex justify-between mb-1">
+                        <label class="text-xs text-gray-500">Block Color</label>
+                        <span id="hueVal" class="text-xs text-blue-400 font-mono">230</span>
+                    </div>
+                    <input type="range" id="blockColor" min="0" max="360" value="230"
+                        class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer">
+                    <div class="w-full h-2 rounded mt-2" id="colorPreview" style="background: hsl(230, 70%, 50%)"></div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" id="inpInline"
+                        class="rounded bg-gray-700 border-gray-600 text-blue-600 focus:ring-0" checked
+                        onchange="updatePreview()">
+                    <label for="inpInline" class="text-sm text-gray-300">Inline Inputs (Horizontal)</label>
+                </div>
+            </div>
+
+            <!-- Connections -->
+            <div class="space-y-4">
+                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-700 pb-2">3.
+                    Connections</h3>
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Block Output</label>
+                        <select id="connOutput"
+                            class="w-full bg-gray-700 text-sm rounded px-3 py-2 outline-none border border-gray-600 focus:border-blue-500"
+                            onchange="updatePreview()">
+                            <option value="none">No Output (Action Block)</option>
+                            <option value="null">Any Type</option>
+                            <option value="String">String (Text)</option>
+                            <option value="Number">Number</option>
+                            <option value="Boolean">Boolean</option>
+                            <option value="Array">List</option>
+                        </select>
+                    </div>
+                    <div id="statementOpts" class="bg-gray-700/50 p-3 rounded border border-gray-700 space-y-2">
+                        <div class="flex items-center gap-2">
+                            <input type="checkbox" id="connPrev"
+                                class="rounded bg-gray-700 border-gray-600 text-blue-600 focus:ring-0" checked
+                                onchange="updatePreview()">
+                            <label for="connPrev" class="text-sm text-gray-300">Connect Top (Previous)</label>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <input type="checkbox" id="connNext"
+                                class="rounded bg-gray-700 border-gray-600 text-blue-600 focus:ring-0" checked
+                                onchange="updatePreview()">
+                            <label for="connNext" class="text-sm text-gray-300">Connect Bottom (Next)</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Inputs / Arguments -->
+            <div class="space-y-4 pb-12">
+                <div class="flex justify-between items-center border-b border-gray-700 pb-2">
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">4. Inputs & Fields</h3>
+                    <button onclick="addInput()"
+                        class="text-xs bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded transition">+ Add
+                        Input</button>
+                </div>
+                <div id="inputsList" class="space-y-3">
+                    <!-- Dynamic Inputs Go Here -->
+                </div>
+                <div class="text-center">
+                    <button onclick="updatePreview()"
+                        class="w-full bg-gray-700 hover:bg-gray-600 text-gray-300 py-2 rounded text-sm transition border border-gray-600">Force
+                        Refresh Preview</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Center: Preview & Logic -->
+    <div class="flex-1 flex flex-col h-full relative overflow-hidden">
+
+        <!-- Top Half: Preview -->
+        <div class="h-1/2 bg-gray-100 relative border-b border-gray-700" style="min-height: 300px;">
+            <div
+                class="absolute top-4 left-4 px-3 py-1.5 bg-white/90 rounded-md text-xs font-bold text-gray-600 z-10 shadow border border-gray-200 pointer-events-none">
+                Live Preview
+            </div>
+            <div id="blocklyDiv" class="absolute inset-0"></div>
+        </div>
+
+        <!-- Bottom Half: Code -->
+        <div class="h-1/2 flex flex-col bg-gray-900 border-t border-gray-700" style="min-height: 300px;">
+            <div class="bg-gray-800 px-6 py-3 border-b border-gray-700 flex justify-between items-center shrink-0">
+                <div>
+                    <h3 class="font-bold text-sm text-gray-200">Python Generator Logic</h3>
+                    <p class="text-xs text-gray-500 mt-1" id="varHelp">Available Variables: None</p>
+                </div>
+            </div>
+
+            <div class="flex-1 relative overflow-hidden">
+                <textarea id="pythonCode"></textarea>
+            </div>
+
+            <!-- Bottom Actions Bar -->
+            <div class="p-4 bg-gray-800 border-t border-gray-700 flex justify-end items-center shrink-0 z-20">
+                <button onclick="saveBlock()"
+                    class="bg-green-600 hover:bg-green-500 text-white px-8 py-2.5 rounded font-bold shadow-lg transform hover:-translate-y-0.5 transition flex items-center gap-2">
+                    <span class="text-lg">💾</span> Save Block
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Logic -->
+    <script>
+        // --- State ---
+        let inputs = []; // { type: 'input_value', name: 'VAR', label: 'Text' }
+        let editor;
+        let workspace;
+        let updateTimer = null;
+
+        // --- Init ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Blockly
+            workspace = Blockly.inject('blocklyDiv', {
+                scrollbars: true,
+                zoom: { controls: true, wheel: true }
+            });
+
+            // CodeMirror
+            editor = CodeMirror.fromTextArea(document.getElementById('pythonCode'), {
+                mode: 'python',
+                theme: 'dracula',
+                lineNumbers: true,
+                indentUnit: 4
+            });
+            editor.setValue("# Write python code here.\n# Use {VAR_NAME} to insert input values.\n\nprint('Hello')\n");
+
+            // Event Listeners
+            document.getElementById('blockColor').addEventListener('input', (e) => {
+                document.getElementById('hueVal').textContent = e.target.value;
+                document.getElementById('colorPreview').style.background = `hsl(${e.target.value}, 70%, 50%)`;
+                scheduleUpdate();
+            });
+
+            // Output toggle
+            const outSel = document.getElementById('connOutput');
+            outSel.addEventListener('change', () => {
+                const isOutput = outSel.value !== 'none';
+                const el = document.getElementById('statementOpts');
+                if (isOutput) {
+                    el.classList.add('opacity-40', 'pointer-events-none');
+                } else {
+                    el.classList.remove('opacity-40', 'pointer-events-none');
+                }
+                scheduleUpdate();
+            });
+
+            // Text inputs
+            ['blockType', 'blockTooltip'].forEach(id => {
+                document.getElementById(id).addEventListener('input', scheduleUpdate);
+            });
+
+            // Check for edit mode
+            const urlParams = new URLSearchParams(window.location.search);
+            const editId = urlParams.get('edit');
+
+            if (editId) {
+                // The original code had a syntax error here with `await` outside an async function.
+                // The `loadEditBlock` function is not defined in the provided snippet,
+                // so we'll assume the intent was to use `loadBlock` directly.
+                await loadBlock(editId);
+            } else {
+                addInput();
+            }
+        });
+
+        async function loadBlock(type) {
+            try {
+                const res = await fetch(`/get-block?type=${type}`);
+
+                // If block not found (404/500), assume it's a System Block being overridden
+                if (!res.ok) {
+                    console.warn("Block not found, assuming System Block Override mode.");
+
+                    // -- New Logic: Inspect System Block --
+                    const tempWorkspace = new Blockly.Workspace();
+                    let sysBlock = null;
+                    try {
+                        sysBlock = tempWorkspace.newBlock(type);
+                    } catch (e) {
+                        alert("Could not load system block definition for " + type);
+                        return;
+                    }
+
+                    document.getElementById('blockType').value = type;
+                    document.getElementById('blockType').disabled = true;
+                    document.getElementById('blockType').classList.add('opacity-50', 'cursor-not-allowed');
+                    document.getElementById('blockType').title = "You are creating an override for System Block: " + type;
+
+                    // Metadata
+                    document.getElementById('blockTooltip').value = sysBlock.getTooltip() || "Override for " + type;
+                    document.getElementById('hueVal').textContent = sysBlock.getHue ? sysBlock.getHue() : 230;
+                    document.getElementById('blockColor').value = sysBlock.getHue ? sysBlock.getHue() : 230;
+                    document.getElementById('colorPreview').style.background = `hsl(${sysBlock.getHue ? sysBlock.getHue() : 230}, 70%, 50%)`;
+                    document.getElementById('inpInline').checked = sysBlock.inputsInline;
+
+                    // Connections
+                    document.getElementById('connPrev').checked = !!sysBlock.previousConnection;
+                    document.getElementById('connNext').checked = !!sysBlock.nextConnection;
+                    if (sysBlock.outputConnection) {
+                        // Try to guess output type checks? overly complex. 
+                        document.getElementById('connOutput').value = "any"; // Default to generic output
+                    } else {
+                        document.getElementById('connOutput').value = "none";
+                    }
+
+                    // Inputs / Args
+                    // Inspecting message0 and args0 is only possible if the block was defined via JSON.
+                    // Many system blocks are defined via JS (init function). 
+                    // Inspecting sysBlock.inputList gives us the structure!
+
+                    document.getElementById('inputsList').innerHTML = '';
+                    inputs = []; // Reset global inputs array
+
+                    sysBlock.inputList.forEach((input, index) => {
+                        // input.name, input.type (InputValue, InputStatement, Dummy)
+                        // We map this to our Builder's simplistic model
+                        // Builder supports: input_value (Data), input_statement (Branch), input_dummy (Text Label)
+
+                        let type = "input_dummy"; // label
+                        if (input.type === Blockly.inputTypes.VALUE) type = "input_value";
+                        if (input.type === Blockly.inputTypes.STATEMENT) type = "input_statement";
+
+                        // Label: The label is actually a field inside the input. 
+                        // input.fieldRow contains fields and labels.
+                        let label = "";
+                        input.fieldRow.forEach(field => {
+                            if (field instanceof Blockly.FieldLabel) {
+                                label += field.getText() + " ";
+                            }
+                            // Note: We ignore Image fields or Dropdowns for now due to complexity
+                            // But we should capture "field_variable" or "field_input" if possible?
+                            // The Simple Builder creates "Label [Input]". It doesn't support complex fields well.
+                            // We will just extract the Text Label.
+                        });
+                        label = label.trim();
+
+                        // Note: If it's a Dummy Input purely for a newline, we might just add it.
+                        // But our Builder manages inputs as linear list.
+
+                        // Add to Global Inputs
+                        inputs.push({
+                            id: inputs.length,
+                            type: type,
+                            name: input.name,
+                            label: label
+                        });
+                    });
+
+                    // Python Code
+                    // Check our Defaults Map
+                    if (window.SYSTEM_BLOCK_DEFAULTS && window.SYSTEM_BLOCK_DEFAULTS[type]) {
+                        const defCode = window.SYSTEM_BLOCK_DEFAULTS[type];
+                        if (editor) editor.setValue(defCode);
+                    } else {
+                        if (editor) editor.setValue("# Code for " + type + "\n# Replace this with your python logic.\nprint('Not implemented yet')");
+                    }
+
+                    alert(`You are overriding the system block '${type}'.\n\nWe have pre-filled the configuration based on the system definition.`);
+
+                    sysBlock.dispose();
+                    tempWorkspace.dispose();
+                    renderInputs();
+                    updatePreview();
+                    return;
+                }
+
+                const data = await res.json();
+
+                // Load Data
+                document.getElementById('blockType').value = data.type;
+                document.getElementById('blockType').disabled = true;
+                document.getElementById('blockType').classList.add('opacity-50', 'cursor-not-allowed');
+                document.getElementById('blockType').title = "Block Type ID cannot be changed in Edit Mode.";
+
+                document.getElementById('blockTooltip').value = data.tooltip || "";
+                document.getElementById('blockCategory').value = data.category || "My Custom Blocks";
+                document.getElementById('hueVal').textContent = data.colour || 230;
+                document.getElementById('blockColor').value = data.colour || 230;
+                document.getElementById('colorPreview').style.background = `hsl(${data.colour || 230}, 70%, 50%)`;
+                document.getElementById('inpInline').checked = data.inputsInline !== false;
+
+                // Output
+                if (data.output) {
+                    document.getElementById('connOutput').value = typeof data.output === 'string' ? data.output : 'null';
+                    document.getElementById('statementOpts').classList.add('opacity-40', 'pointer-events-none');
+                } else {
+                    document.getElementById('connOutput').value = "none";
+                    document.getElementById('connPrev').checked = data.previousStatement !== undefined;
+                    document.getElementById('connNext').checked = data.nextStatement !== undefined;
+                    document.getElementById('statementOpts').classList.remove('opacity-40', 'pointer-events-none');
+                }
+
+                // Load Python Code
+                if (editor && data.python) {
+                    editor.setValue(data.python);
+                }
+
+                // Reconstruct Inputs
+                inputs = [];
+                const msg = data.message0 || "";
+                const args = data.args0 || [];
+
+                // Split message by %N
+                const parts = msg.split(/%\d+/);
+
+                args.forEach((arg, idx) => {
+                    let label = parts[idx] ? parts[idx].trim() : "";
+
+                    inputs.push({
+                        id: idx,
+                        type: arg.type,
+                        name: arg.name || "",
+                        label: label
+                    });
+                });
+                // But our builder creates "Label %N". 
+
+                renderInputs();
+                updatePreview();
+            } catch (e) {
+                console.error("Error loading block:", e);
+                alert("Error loading block: " + e.message);
+            }
+        }
+
+        function scheduleUpdate() {
+            if (updateTimer) clearTimeout(updateTimer);
+            updateTimer = setTimeout(updatePreview, 300);
+        }
+
+        // --- Inputs Logic ---
+
+        function addInput() {
+            const id = inputs.length;
+            const inputDef = {
+                id: id,
+                type: 'input_value',
+                name: 'INPUT_' + (id + 1),
+                label: 'Label ' + (id + 1)
+            };
+            inputs.push(inputDef);
+            renderInputs();
+            updatePreview();
+        }
+
+        function removeInput(index) {
+            inputs.splice(index, 1);
+            renderInputs();
+            updatePreview();
+        }
+
+        function updateInputVar(index, key, value) {
+            inputs[index][key] = value;
+            if (key === 'type' || key === 'name' || key === 'label') updatePreview();
+        }
+
+        function renderInputs() {
+            const container = document.getElementById('inputsList');
+            container.innerHTML = '';
+
+            inputs.forEach((inp, idx) => {
+                const div = document.createElement('div');
+                div.className = "bg-gray-700/50 p-3 rounded border border-gray-600 flex flex-col gap-3 group hover:border-blue-500/50 transition";
+                div.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center gap-2">
+                             <span class="bg-gray-800 text-gray-400 text-[10px] font-mono px-1.5 py-0.5 rounded">#${idx + 1}</span>
+                             <select onchange="updateInputVar(${idx}, 'type', this.value)" class="bg-gray-800 text-xs text-white rounded px-2 py-1 border border-gray-600 focus:border-blue-500 outline-none">
+                                <option value="input_value" ${inp.type === 'input_value' ? 'selected' : ''}>Value (Socket)</option>
+                                <option value="input_dummy" ${inp.type === 'input_dummy' ? 'selected' : ''}>Label (Text)</option>
+                                <option value="input_statement" ${inp.type === 'input_statement' ? 'selected' : ''}>Statement (Slot)</option>
+                                <option value="field_input" ${inp.type === 'field_input' ? 'selected' : ''}>Text Field</option>
+                                <option value="field_number" ${inp.type === 'field_number' ? 'selected' : ''}>Number Field</option>
+                                <option value="field_dropdown" ${inp.type === 'field_dropdown' ? 'selected' : ''}>Dropdown</option>
+                            </select>
+                        </div>
+                        <button onclick="removeInput(${idx})" class="text-gray-500 hover:text-red-400 transition" title="Remove">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-[10px] text-gray-500 uppercase font-bold block mb-1">Variable Name</label>
+                            <input type="text" value="${inp.name}" oninput="updateInputVar(${idx}, 'name', this.value)" class="w-full bg-gray-800 text-xs rounded px-2 py-1.5 border border-gray-600 font-mono focus:border-blue-500 outline-none" placeholder="VAR_NAME">
+                        </div>
+                         <div>
+                            <label class="text-[10px] text-gray-500 uppercase font-bold block mb-1">Display Label</label>
+                            <input type="text" value="${inp.label}" oninput="updateInputVar(${idx}, 'label', this.value)" class="w-full bg-gray-800 text-xs rounded px-2 py-1.5 border border-gray-600 focus:border-blue-500 outline-none" placeholder="Label Text">
+                        </div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+
+            // Update Vars Help
+            const vars = inputs.filter(i => i.type !== 'input_dummy').map(i => `{${i.name}}`).join(', ');
+            document.getElementById('varHelp').textContent = vars ? ("Available Vars: " + vars) : "Available Vars: None";
+        }
+
+        function updatePreview() {
+            const typeKey = document.getElementById('blockType').value || 'example_block';
+            console.log("Updating Preview for:", typeKey);
+
+            const color = parseInt(document.getElementById('blockColor').value);
+            const outputVal = document.getElementById('connOutput').value;
+            const isInline = document.getElementById('inpInline').checked;
+
+            let message0 = "";
+            let args0 = [];
+            let argCount = 1;
+
+            // Build Message String
+            inputs.forEach((inp, idx) => {
+                // Formatting: trim spaces cleanly
+                const label = inp.label ? inp.label.trim() : "";
+
+                if (label) {
+                    message0 += label + " ";
+                }
+
+                if (inp.type !== 'input_dummy') {
+                    message0 += "%" + argCount + " ";
+                    argCount++;
+
+                    let argDef = { type: inp.type, name: inp.name };
+
+                    // Field Defaults
+                    if (inp.type === 'field_input') argDef.text = "default";
+                    if (inp.type === 'field_number') argDef.value = 0;
+                    if (inp.type === 'field_dropdown') argDef.options = [["Option 1", "OPT1"], ["Option 2", "OPT2"]];
+
+                    // Value Types
+                    if (inp.type === 'input_value') argDef.check = null; // Accept any
+                    if (inp.type === 'input_statement') argDef.check = null;
+
+                    args0.push(argDef);
+                } else {
+                    // If it's a dummy input, it might be just for label spacing or new line?
+                    // Usually dummy inputs are needed if we want a line break.
+                    // But message0 handles simple text.
+                    // To force a dummy input struct (which allows alignment/fields later), we can add it.
+                    // But for text only, we don't strictly need args entry unless we want to attach fields to it.
+                    // Let's assume Dummy = Label Text Only for now.
+                }
+            });
+
+            message0 = message0.trim();
+            // If empty message, use placeholder
+            if (!message0 && inputs.length === 0) message0 = "Empty Block";
+
+            const jsonDef = {
+                type: typeKey,
+                message0: message0,
+                args0: args0,
+                colour: color,
+                inputsInline: isInline,
+                tooltip: document.getElementById('blockTooltip').value,
+                helpUrl: ""
+            };
+
+            if (outputVal !== 'none') {
+                jsonDef.output = outputVal === 'null' ? null : outputVal;
+                // No statements if output exists
+            } else {
+                if (document.getElementById('connPrev').checked) jsonDef.previousStatement = null;
+                if (document.getElementById('connNext').checked) jsonDef.nextStatement = null;
+            }
+
+            // --- Render ---
+            try {
+                // Must deregister to update
+                if (Blockly.Blocks[typeKey]) delete Blockly.Blocks[typeKey];
+
+                Blockly.Blocks[typeKey] = {
+                    init: function () {
+                        this.jsonInit(jsonDef);
+                    }
+                };
+
+                workspace.clear();
+                const block = workspace.newBlock(typeKey);
+                block.initSvg();
+                block.render();
+                block.moveBy(50, 50);
+
+                window.currentBlockDef = jsonDef;
+
+            } catch (e) {
+                console.error("Preview Render Error:", e);
+            }
+        }
+
+        function saveBlock() {
+            if (!window.currentBlockDef) return updatePreview();
+
+            const payload = {
+                ...window.currentBlockDef,
+                python: editor.getValue(),
+                category: document.getElementById('blockCategory').value
+            };
+
+            const btn = event.currentTarget;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = "Saving...";
+
+            fetch('/save-block', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).then(r => r.json()).then(d => {
+                btn.innerHTML = originalText;
+                alert(d.message);
+            }).catch(e => {
+                btn.innerHTML = originalText;
+                alert("Error: " + e.message);
+            });
+        }
+    </script>
+    <style>
+        /* Custom Scrollbar for dark theme */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1f2937;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #374151;
+            border-radius: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #4b5563;
+        }
+
+        /* Fix for Blockly Input Fields inheriting white text */
+        .blocklyHtmlInput {
+            color: #000 !important;
+        }
+    </style>
+</body>
+
+</html>
