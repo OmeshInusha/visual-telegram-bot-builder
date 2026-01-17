@@ -1,0 +1,46 @@
+{
+    "type": "openai_chat",
+    "message0": "ChatGPT: Ask %1 using Model %2 (Key: %3)",
+    "args0": [
+        {
+            "type": "input_value",
+            "name": "PROMPT",
+            "check": "String"
+        },
+        {
+            "type": "field_dropdown",
+            "name": "MODEL",
+            "options": [
+                [
+                    "GPT-3.5 Turbo",
+                    "gpt-3.5-turbo"
+                ],
+                [
+                    "GPT-4",
+                    "gpt-4"
+                ],
+                [
+                    "GPT-4o",
+                    "gpt-4o"
+                ]
+            ]
+        },
+        {
+            "type": "input_value",
+            "name": "API_KEY",
+            "check": "String"
+        }
+    ],
+    "output": "String",
+    "colour": 120,
+    "tooltip": "Send a prompt to ChatGPT and get the response.",
+    "helpUrl": "https://platform.openai.com/docs/api-reference",
+    "category": "OpenAI",
+    "imports": [
+        "import openai"
+    ],
+    "methods": {
+        "call_chatgpt": "def call_chatgpt(prompt, model, key):\n    if not key or key == 'None': return 'Error: No API Key Provided'\n    openai.api_key = key\n    try:\n        response = openai.ChatCompletion.create(model=model, messages=[{'role': 'user', 'content': prompt}])\n        return response.choices[0].message.content\n    except Exception as e:\n        return f'Error: {str(e)}'"
+    },
+    "python": "call_chatgpt({PROMPT}, '{MODEL}', {API_KEY})"
+}

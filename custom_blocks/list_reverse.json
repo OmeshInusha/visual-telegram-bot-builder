@@ -1,0 +1,19 @@
+{
+  "type": "list_reverse",
+  "message0": "Reverse the list %1",
+  "args0": [
+    {
+      "type": "input_value",
+      "name": "list_name",
+      "check": null
+    }
+  ],
+  "colour": 261,
+  "inputsInline": true,
+  "tooltip": "Reversing the items of list",
+  "helpUrl": "",
+  "previousStatement": null,
+  "nextStatement": null,
+  "python": "\n{list_name}.reverse()\n",
+  "category": "Lists & Files"
+}

@@ -1,0 +1,28 @@
+{
+    "type": "openai_image",
+    "message0": "DALL-E: Generate Image for %1 (Key: %2)",
+    "args0": [
+        {
+            "type": "input_value",
+            "name": "PROMPT",
+            "check": "String"
+        },
+        {
+            "type": "input_value",
+            "name": "API_KEY",
+            "check": "String"
+        }
+    ],
+    "output": "String",
+    "colour": 120,
+    "tooltip": "Generate an image URL using DALL-E.",
+    "helpUrl": "",
+    "imports": [
+        "import openai"
+    ],
+    "methods": {
+        "call_dalle": "def call_dalle(prompt, key):\n    if not key or key == 'None': return 'Error: No API Key'\n    openai.api_key = key\n    try:\n        resp = openai.Image.create(prompt=prompt, n=1, size='1024x1024')\n        return resp['data'][0]['url']\n    except Exception as e:\n        return f'Error: {str(e)}'"
+    },
+    "python": "call_dalle({PROMPT}, {API_KEY})",
+    "category": "OpenAI"
+}
